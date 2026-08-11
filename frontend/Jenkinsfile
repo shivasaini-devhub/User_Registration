@@ -5,6 +5,7 @@ pipeline {
         AWS_REGION = 'eu-west-1'
         ECR_REPOSITORY = '804837308178.dkr.ecr.eu-west-1.amazonaws.com/user-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        NEXT_PUBLIC_API_URL = 'http://YOUR_BACKEND_URL:5000/api'
     }
 
     stages {
@@ -45,6 +46,7 @@ pipeline {
             steps {
                 sh '''
                     docker build \
+                        --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         ./frontend
                 '''
