@@ -25,7 +25,7 @@ pipeline {
             }
         }
 
-        stage('Run Test') {
+        stage('Run Tests') {
             steps {
                 dir('frontend') {
                     sh 'npm test'
