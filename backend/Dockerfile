@@ -1,53 +1,76 @@
 # ==========================================
 # 1. Builder Stage
 # ==========================================
-FROM node:22-alpine AS builder
+
+FROM node:22-bookworm-slim AS builder
+
 WORKDIR /app
 
-# Install dependencies including devDependencies for build & Prisma CLI
+RUN apt-get update && apt-get install -y \
+    openssl \
+    libc6 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 COPY prisma ./prisma/
+
 RUN npm ci
 
-# Copy application source code
 COPY . .
 
-# Generate Prisma Client & compile NestJS TypeScript app
 RUN npx prisma generate
 RUN npm run build
+
 
 # ==========================================
 # 2. Production Dependencies Stage
 # ==========================================
-FROM node:22-alpine AS deps
+
+FROM node:22-bookworm-slim AS deps
+
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    openssl \
+    libc6 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY prisma ./prisma/
+
 RUN npm ci --omit=dev
+
 RUN npx prisma generate
 
+
 # ==========================================
-# 3. Final Production Runner Stage
+# 3. Production Runner
 # ==========================================
-FROM node:22-alpine AS runner
+
+FROM node:22-bookworm-slim AS runner
+
 WORKDIR /app
 
-# Dynamic build arguments
-ARG PORT=5000
-ARG DATABASE_URL
+RUN apt-get update && apt-get install -y \
+    openssl \
+    libc6 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV NODE_ENV=production
-ENV PORT=${PORT}
-ENV DATABASE_URL=${DATABASE_URL}
+COPY --chown=node:node \
+    --from=deps /app/node_modules ./node_modules
 
-# Copy built dist, production dependencies, and Prisma assets with non-root ownership
-COPY --chown=node:node --from=deps /app/node_modules ./node_modules
-COPY --chown=node:node --from=builder /app/dist ./dist
-COPY --chown=node:node --from=builder /app/package*.json ./
-COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node \
+    --from=builder /app/dist ./dist
 
-# Security: Run as non-root user
+COPY --chown=node:node \
+    --from=builder /app/package*.json ./
+
+COPY --chown=node:node \
+    --from=builder /app/prisma ./prisma
+
 USER node
 
 EXPOSE 5000
