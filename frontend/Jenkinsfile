@@ -12,6 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
+                    credentialsId: 'github-user-registration',
                     url: 'https://github.com/shivasaini-devhub/User_Registration.git'
             }
         }
